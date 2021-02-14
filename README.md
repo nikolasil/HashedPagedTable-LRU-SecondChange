@@ -1,5 +1,4 @@
-# This is a programm that simmulates 2 programms (bzip and gcc) with pages that are stored in a ram and when the frames of the ram are full then page replacement happens with LRU or Second Change Algorithm.
-
+# This is a programm that simmulates 2 programms (bzip and gcc) with pages that are stored in a ram and when the frames of the ram are full then page replacement happens with LRU or Second Change Algorithm. This was an exersice that i did on the Operation System class in University to learn Paging.
 ---
 
 ### **Μεταγλώττιση & Εκτέλεση**
