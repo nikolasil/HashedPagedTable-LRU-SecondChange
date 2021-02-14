@@ -1,8 +1,4 @@
-## Λειτουργικά Συστήματα
-
-## Νικόλας Ηλιόπουλος Α.Μ. 1115201800332
-
-## Άσκηση 2
+# This is a programm that simmulates 2 programms (bzip and gcc) with pages that are stored in a ram and when the frames of the ram are full then page replacement happens with LRU or Second Change Algorithm.
 
 ---
 
