@@ -1,31 +1,36 @@
-# This is a programm that simmulates 2 programms (bzip and gcc) with pages that are stored in a ram and when the frames of the ram are full then page replacement happens with LRU or Second Change Algorithm. This was an exersice that i did on the Operation System class in University to learn Paging.
----
-
-### **Μεταγλώττιση & Εκτέλεση**
-
-Εμπεριέχεται Makefile το οποίο μεταγλωττίζει συνολικά όλα τα αρχεία C με την εντολή make. Η εκτέλεση του προγράμματος γίνεται με την εντολή ./prog [-arg1] [-arg2] [-arg3] [-arg4]
-
--   arg1 : Επιλογή αλγόριθμου αντικατάστασης (LRU ή SecondChange)
--   arg2 : Επιλογή του πλήθους των frames της ram (> 0)
--   arg3 : Επιλογή του πλήθους q το οποίο ορίζει πόσα pages θα διαβάζει από κάθε διεργασία εναλλάξ (> 0)
--   arg4 : Επιλογή του πλήθους ΜΑΧ το οποίο ορίζει πόσα pages θα διαβαστούν συνολικά και από τις 2 διεργασίες (> 0 ή -1 για όλο το πλήθος των αρχείων)
+# This project was made during my studies in UOA University and especially for the course Operation Systems.
 
 ---
 
-### **utils.c & utils.h**
+> There are comments all over my code if there is something that i didn't covered here.
 
-Σε αυτά τα αρχεία περιέχονται όλες οι απαράτητες συναρτήσεις και struct για την λειτουργία του προγράμματος όπως η υλοποίηση της λίστας και των συναρτήσεων της, η ανανέωση και η εισαγωγή στην ram κ.λ.π
+This is a programm that simmulates 2 programms (bzip and gcc) with pages that are stored in a ram and when the frames of the ram are full then page replacement happens with LRU or Second Change Algorithm. This was an exersice that i did on the Operation System class in University to learn Paging.
+
+## Compile & Run*
+
+Includes Makefile which compiles all C files with the make command. The program is executed with the command ./prog [-arg1] [-arg2] [-arg3] [-arg4]
+
+- arg1: Selection of replacement algorithm (LRU or SecondChange)
+- arg2: Select the number of ram frames (> 0)
+- arg3: Select the number q which determines how many pages to read from each process alternately (> 0)
+- arg4: Selection the MAX number which determines how many pages will be read in total by both processes (> 0 or -1 for the entire number of files)
 
 ---
-### **Λογική Hash Tables**
 
-Έχουμε δύο hash table, ένα για κάθε διεργασία, μεγέθους όσων των frames της ram για να υπαρχει συμμετρικότητα.
+## utils.c & utils.h
 
-Κάθε entry του hash table έχει έναν δείκτη σε μία μονά συνδεδεμένη λίστα με nodes που περιέχουν pageNumber και frameNumber.
+These files contain all the necessary functions and structures for the operation of the program such as the implementation of the list and its functions, the renewal and the introduction to the ram, etc.
 
 ---
 
-### **Λογική Ram**
+## Hash Tables
+
+We have two hash tables, one for each process, the size of the ram frames for symmetry.
+Each entry in the hash table has a pointer to a single linked list of nodes containing pageNumber and frameNumber.
+
+---
+
+## Ram
 
 ```c
 typedef struct ram
@@ -34,9 +39,11 @@ typedef struct ram
     frame *frames;  // points to the frames
 } ram;
 ```
-Η ram είναι ένα struct με πολλούς δείκτες σε struct frame.
 
-Για ευκολία τα frameNumbers είναι τα index από 0 έως size-1. 
+Ram is a struct with many pointers in a struct frame.
+
+For convenience, frameNumbers are indexes from 0 to size-1.
+
 ```c
 typedef struct frame
 {
@@ -53,39 +60,37 @@ typedef struct frame
 
 ---
 
-### **Λογική Προγράμματος**
+## Program Logic
 
-Το πρόγραμμα είναι μία while() η οποία σταματάει όταν διαβαστούν Max Pages από τις δύο διεργασίες.
+The program is a while() which stops when Max Pages are read by both processes.
 
-Έχουμε τις εξής περιπτώσεις:
--   Το pageNumber που διαβάσαμε υπάρχει στο hash table της συγκεκριμένης διεργασίας. Αυτό σημαίνει ότι το Page υπάρχει σε ένα frame της ram. Οπότε απλά πάμε στο συγκεκριμένο frame και ανανεώνουμε τον χρόνο του frame και επίσης αν εχουμε W κάνουμε και το isWritten του frame 1 για να ξέρουμε ότι κάναμε write στο Page αυτό.
+We have the following cases:
+- The pageNumber we read is in the hash table of this process. This means that the Page exists in a frame of the ram. So we just go to the specific frame and refresh the frame time and also if we have W we do the isWritten of frame 1 to know that we wrote to this Page.
 
--   Το pageNumber που διαβάσαμε **ΔΕΝ** υπάρχει στο hash table της συγκεκριμένης διεργασίας.
-    -   Χωράει στην ram άρα το προσθέτουμε και στην ram και στο hash table.
-    -   **ΔΕΝ** χωράει στην ram. Άρα με τον αλγόριθμο που επιλέκτηκε επιλέγουμε ένα page μέσα στην ram για να το αντικαταστήσουμε με το καινούργιο. Επίσης αποθηκεύουμε το page που αντικαταστήσαμε στον δίσκο, το βγάζουμε από το hash table και προσθέτουμε το καινούργιο Page στο hash table. (Eπειδή η άσκηση είναι εικονική για να καταλάβουμε την λειτουργία του paging και δεν έχουμε πληροφορία σαν Page για να αποθηκεύσουμε απλά κάνω μία μεταβλητή 1 για να αναπαραστίσω το γράψιμο στον δίσκο)
-
----
-
-### **Hashing**
-
-Για να κάνω hash χρησιμοποιώ την συνάρτηση **SHA1**.
-
-Για να μετατρέψω από δεκαεξαδικό σε δεκαδικό σύστημα χρησιμοποιώ μία συνάρτηση μέσα στο util.c που κάνει το κατάλληλο shift σε ascii χαρακτήρες.
-
-To HashTableIndex είναι hexadecimalToDecimal(Hash) % sizeof(ram);
+- The pageNumber we read **does NOT** exist in the hash table of the specific process.
+    - It fits in the ram so we add it to both the ram and the hash table.
+    - **Does NOT** fit on the ram. So with the selected algorithm we select a page in the ram to replace it with the new one. We also save the page we replaced on the disk, remove it from the hash table and add the new Page to the hash table. (Because the exercise is virtual to understand the function of paging and we do not have information like Page to save I just do a variable 1 to represent the writing on the disk)
 
 ---
 
-### **LRU**
+## Hashing
 
-Διαλέγουμε να αντικαταστήσουμε το page με τον πιο μικρό χρόνο. Δηλαδή το page που εισήχθη πιο παλιά.
+To do a hash I use the function **SHA1**.
+To convert from hexadecimal to decimal I use a function inside util.c that makes the appropriate shift to ascii characters.
+HashTableIndex is hexadecimalToDecimal (Hash)% sizeof (ram);
 
 ---
 
-### **SecondChange**
+## LRU
 
-Ο SecondChange είναι ίδιος με τον LRU απλά δίνει δεύτερη ευκαρία σε όσα pages έχουν χρησιμοποηθεί πρόσφατα.(Δηλαδή refBit = 1)
+We choose to replace the page with the smallest time. That is, the page that was introduced earlier.
 
-Δηλαδή μπορεί να υπάρχει ένα page (το οποίο έχει μπει πρώτο) και επειδή χρησιμοποιείται συνέχεια(άρα το refBit του γίνεται 1) ο second change του δίνει δεύτερη ευκαιρία και διαλλέγει ένα άλλο frame που έχει refBit == 0 και min time.
+---
 
-Αφού δωθεί η δεύτερη ευκαρία το refBit γίνεται 0 σε όλα τα pages.
+## SecondChange
+
+SecondChange is the same as LRU, it just gives a second chance to all the pages that have been used recently (refBit = 1)
+
+That is, there may be a page (which has been entered first) and because it is used continuously (so its refBit becomes 1) the second change gives it a second chance and chooses another frame that has refBit == 0 and min time.
+
+After the second opportunity is given, refBit becomes 0 on all pages.
