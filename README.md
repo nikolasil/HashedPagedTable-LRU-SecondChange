@@ -1,96 +1,73 @@
-# This project was made during my studies in UOA University and especially for the course Operation Systems.
+# RAM Pagination & Memory Management Simulator
+
+A high-performance C implementation of a memory management unit (MMU) simulator. This project explores the efficiency of **Hashed Page Tables** and compares the performance of **Least Recently Used (LRU)** versus **Second Chance** page replacement algorithms using real-world memory trace files (bzip and gcc).
+
+
 
 ---
 
-> There are comments all over my code if there is something that i didn't covered here.
+## ## Core Architecture
 
-This is a programm that simmulates 2 programms (bzip and gcc) with pages that are stored in a ram and when the frames of the ram are full then page replacement happens with LRU or Second Change Algorithm. This was an exersice that i did on the Operation System class in University to learn Paging.
+### ### 1. Hashed Page Tables
+To optimize page lookups, the system implements a Hashed Page Table for each process. 
+* **Hashing Engine:** Uses the **SHA1** algorithm for uniform distribution.
+* **Collision Handling:** Implemented via single-linked lists (chaining) at each hash bucket.
+* **Mapping:** Transparently maps `pageNumber` to physical `frameNumber`.
 
-## Compile & Run*
+### ### 2. RAM & Frame Simulation
+The RAM is simulated as a structured contiguous block of memory frames. Each frame tracks metadata critical for replacement logic:
+* `refBit`: Used for the Second Chance algorithm.
+* `isWritten`: Tracks "dirty" pages to simulate disk write-back overhead.
+* `time`: High-precision timestamp for LRU logic.
 
-Includes Makefile which compiles all C files with the make command. The program is executed with the command ./prog [-arg1] [-arg2] [-arg3] [-arg4]
 
-- arg1: Selection of replacement algorithm (LRU or SecondChange)
-- arg2: Select the number of ram frames (> 0)
-- arg3: Select the number q which determines how many pages to read from each process alternately (> 0)
-- arg4: Selection the MAX number which determines how many pages will be read in total by both processes (> 0 or -1 for the entire number of files)
-
----
-
-## utils.c & utils.h
-
-These files contain all the necessary functions and structures for the operation of the program such as the implementation of the list and its functions, the renewal and the introduction to the ram, etc.
 
 ---
 
-## Hash Tables
+## ## Page Replacement Algorithms
 
-We have two hash tables, one for each process, the size of the ram frames for symmetry.
-Each entry in the hash table has a pointer to a single linked list of nodes containing pageNumber and frameNumber.
+The simulator evaluates two primary strategies for handling page faults when the physical RAM is exhausted:
+
+### ### Least Recently Used (LRU)
+Identifies the "coldest" page—the one with the earliest access timestamp—and evicts it to make room for new data. This minimizes the page fault rate by assuming recently accessed pages will be accessed again soon.
+
+### ### Second Chance (Clock)
+An optimized version of FIFO/LRU that uses a `refBit`. If a page is scheduled for eviction but its `refBit` is 1, it is given a "second chance": its bit is cleared to 0, its timestamp is updated, and the algorithm moves to the next candidate. This protects frequently accessed pages from being evicted prematurely.
 
 ---
 
-## Ram
+## ## Logic & Page Fault Handling
 
-```c
-typedef struct ram
-{
-    int size;       // the number of the frames that the ram has
-    frame *frames;  // points to the frames
-} ram;
+The simulator process alternates between two concurrent traces (`q` pages at a time) and handles requests as follows:
+
+1.  **Page Hit:** The `pageNumber` exists in the Hashed Page Table. The simulator updates the access timestamp and sets the `isWritten` flag if the operation is a Write (W).
+2.  **Page Fault (Space Available):** The page is loaded into an empty RAM frame and indexed in the Hashed Page Table.
+3.  **Page Fault (RAM Full):** * The selected algorithm (LRU or Second Chance) identifies an eviction candidate.
+    * If the evicted page was "dirty" (`isWritten == 1`), a disk write-back is simulated.
+    * The old mapping is purged from the Hash Table, and the new page is loaded.
+
+---
+
+## ## Getting Started
+
+### ### Compilation
+Build the project using the included `Makefile`:
+```bash
+make
 ```
 
-Ram is a struct with many pointers in a struct frame.
-
-For convenience, frameNumbers are indexes from 0 to size-1.
-
-```c
-typedef struct frame
-{
-    int exists;     // if 1 this frame contains a page otherwise not
-    int isWritten;  // if 1 this frame has been accessed to be written 
-                    // at least ones
-    int refBit;     // the reference bit for the second change algorithm
-    int inDisk;     // this bit set to 1 to visualize that the page has
-                    // been saved to the disk
-    int pageNumber; // just to have the pageNumber
-    time time;      // the time that the last access or modify has been occured
-} frame;
+### Execution
+Run the simulator using the following syntax:
+```bash
+./prog <algorithm> <num_frames> <q_pages> <max_total_pages>
 ```
 
----
+Arguments:
+- algorithm: LRU or SecondChange.
+- num_frames: Number of physical frames available in RAM.
+- q_pages: Quantum size (how many pages to read from each process before switching).
+- max_total_pages: Total pages to simulate (use -1 for the full trace).## Technical DetailsLanguage: C (C11 standard)Hashing: SHA1 implementation for address translation.
 
-## Program Logic
+Data Structures: Doubly linked lists for RAM frame management and Hashed Page Tables for $O(1)$ average-case lookups.
 
-The program is a while() which stops when Max Pages are read by both processes.
-
-We have the following cases:
-- The pageNumber we read is in the hash table of this process. This means that the Page exists in a frame of the ram. So we just go to the specific frame and refresh the frame time and also if we have W we do the isWritten of frame 1 to know that we wrote to this Page.
-
-- The pageNumber we read **does NOT** exist in the hash table of the specific process.
-    - It fits in the ram so we add it to both the ram and the hash table.
-    - **Does NOT** fit on the ram. So with the selected algorithm we select a page in the ram to replace it with the new one. We also save the page we replaced on the disk, remove it from the hash table and add the new Page to the hash table. (Because the exercise is virtual to understand the function of paging and we do not have information like Page to save I just do a variable 1 to represent the writing on the disk)
-
----
-
-## Hashing
-
-To do a hash I use the function **SHA1**.
-To convert from hexadecimal to decimal I use a function inside util.c that makes the appropriate shift to ascii characters.
-HashTableIndex is hexadecimalToDecimal (Hash)% sizeof (ram);
-
----
-
-## LRU
-
-We choose to replace the page with the smallest time. That is, the page that was introduced earlier.
-
----
-
-## SecondChange
-
-SecondChange is the same as LRU, it just gives a second chance to all the pages that have been used recently (refBit = 1)
-
-That is, there may be a page (which has been entered first) and because it is used continuously (so its refBit becomes 1) the second change gives it a second chance and chooses another frame that has refBit == 0 and min time.
-
-After the second opportunity is given, refBit becomes 0 on all pages.
+### Academic Context: This project was developed for the Operating Systems course at the National and Kapodistrian University of Athens (UoA).
